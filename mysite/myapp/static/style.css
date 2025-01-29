@@ -1,0 +1,7 @@
+html{
+    scroll-behavior: smooth;
+}
+#symptoms::placeholder {
+    font-size: 0.9em; /* Размер шрифта для текста placeholder */
+    color: #999; /* Опционально: цвет текста placeholder */
+}

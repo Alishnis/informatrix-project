@@ -1,0 +1,281 @@
+
+
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<div id="rec843263554" class="r t-rec t-rec_pt_135 t-rec_pt-res-480_90 t-rec_pb_135 t-rec_pb-res-480_90" style="padding-top:135px;padding-bottom:135px;background-color:#fff;" data-animationappear="off" data-record-type="948" data-bg-color="#fff">
+    <div class="t948">
+        <div class="t-section__container t-container t-container_flex" style="margin-bottom:80px;">
+            <div class="t-col t-col_12">
+                <div class="t-section__title t-title t-title_xs t-align_center t-margin_auto" field="btitle">
+                    Skin analysis  by image
+                </div>
+                <div class="t-section__descr t-descr t-descr_xl t-align_center t-margin_auto" field="bdescr">
+                    with the help of artificial intelligence
+                </div>
+            </div>
+        </div>
+        <div class="t-container">
+            <div class="t948__row">
+                <div class="t-item t948__col t-col t-col_12">
+                    <div class="t948__content">
+                        <div class="t948__textwrapper" style="border: 1px solid transparent; background-color: #f2f9fd;">
+                            <div class="t948__circle">
+                                <div class="t948__number t-name t-name_md">1</div>
+                            </div>
+                            <div class="t948__title t-name t-name_md" field="li_title__5917094636332">
+                                
+                                <h1>Analysis Results</h1>
+                                    {% if predicted_class %}
+                                    <div id="result">
+                                        <h3>Analysis results:</h3>
+                                        <p>Predicted class: <strong>{{ predicted_class }}</strong></p>
+                                        <p>Probability: <strong>{{ predicted_probability }}</strong></p>
+                                        <img src="{{ gradcam_url }}" alt="Grad-CAM" style="max-width: 100%; margin-top: 20px;">
+                                    
+                                    
+                                       
+                                        <h2 style="padding-top: 20px;">The nearest hospital</h2>
+                                        <div id="map" style="width: 100%; height: 400px; border-radius: 5px; margin-top: 20px;"></div>
+                                        <div id="error-message" style="color: red; margin-top: 10px;"></div>
+                                        <div id="hospital-info" style="margin-top: 20px; font-size: 16px;"></div>
+                                   
+                           
+                                    </div>
+                                    
+                                    
+                                
+                                    </ul>
+                                {% else %}
+                                    <p>No diseases detected with high probability</p>
+                                {% endif %}
+                                    </ul>
+                                    
+                                    <a href="{% url 'analyze_skin_image' %}">Upload another image</a>
+                            </div>
+                            <form method="POST" action="{% url 'save_results_skin' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="analysis_id" value="{{ analysis_id }}">
+                                <button type="submit" class="btn-save">Save results</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Индикатор загрузки -->
+<div id="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+        <img src="{% static 'loading.gif' %}" alt=" Loading…">
+        <p>Analyzing…</p>
+    </div>
+</div>
+
+<style>
+    /* Стиль для фона на весь экран */
+    img {
+        width: 400px; /* Фиксированная ширина */
+        height: 300px; /* Фиксированная высота */
+        object-fit: contain; /* Сохраняет пропорции внутри заданных размеров */
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin-top: 20px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    #loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5); /* Полупрозрачный фон */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000; /* Поверх всего контента */
+    }
+
+    /* Стиль для индикатора загрузки */
+    .loading-spinner {
+        text-align: center;
+        color: white;
+        font-size: 1.5em;
+    }
+
+    .loading-spinner img {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 20px;
+    }
+    button {
+            padding: 10px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        button:focus {
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        }
+</style>
+
+<script>
+    // Функция для отображения индикатора загрузки
+    function showLoading() {
+        document.getElementById('loading-overlay').style.display = 'flex';
+    }
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script>
+    // Инициализация карты
+    const map = L.map('map').setView([55.7558, 37.6173], 14); // Москва по умолчанию
+
+    // Добавление карты OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Получение местоположения пользователя
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userCoordinates = [position.coords.latitude, position.coords.longitude];
+
+                // Центрируем карту на местоположении пользователя
+                map.setView(userCoordinates, 14);
+
+                // Добавляем маркер пользователя
+                const userMarker = L.marker(userCoordinates).addTo(map)
+                    .bindPopup('You are here')
+                    .openPopup();
+
+                // Ищем ближайшую больницу
+                findNearestHospital(userCoordinates);
+            },
+            (error) => {
+                document.getElementById('error-message').textContent = "Unable to access your location.";
+            }
+        );
+    } else {
+        document.getElementById('error-message').textContent = "Geolocation is not supported by your browser.";
+    }
+
+    // Поиск ближайшей больницы
+    function findNearestHospital(userCoordinates) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=hospital&limit=5&bounded=1&viewbox=${userCoordinates[1]-0.1},${userCoordinates[0]-0.1},${userCoordinates[1]+0.1},${userCoordinates[0]+0.1}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            console.log("Реальные больницы из OpenStreetMap:", data);
+
+            if (data.length === 0) {
+                document.getElementById("error-message").textContent = "Ближайших больниц не найдено.";
+                return;
+            }
+
+            // Берём первую больницу из списка
+            const nearestHospital = data[0];
+
+            const hospitalCoordinates = [parseFloat(nearestHospital.lat), parseFloat(nearestHospital.lon)];
+            const hospitalName = nearestHospital.display_name || "Неизвестная больница";
+
+            // Добавляем маркер для больницы
+            L.marker(hospitalCoordinates)
+                .addTo(map)
+                .bindPopup(`<strong>${hospitalName}</strong>`)
+                .openPopup();
+
+            // Отображаем информацию о больнице
+            document.getElementById('hospital-info').innerHTML = `
+                <strong>Hospital name:</strong> ${hospitalName} <br>
+                <strong>Coordinates:</strong> ${hospitalCoordinates[0]}, ${hospitalCoordinates[1]}
+            `;
+        })
+        .catch(error => {
+            console.error("Ошибка запроса к OpenStreetMap:", error);
+            document.getElementById("error-message").textContent = "Ошибка загрузки данных о больницах.";
+        });
+}
+</script>
+    
+
+
+
+<style>
+    body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+    color: #333;
+}
+
+
+
+nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 15px;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+}
+
+main {
+    padding: 20px;
+}
+
+footer {
+    text-align: center;
+    padding: 10px;
+    background-color: #333;
+    color: white;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+</style>
+{% endblock %}
+
+
+
+
+    
+
+

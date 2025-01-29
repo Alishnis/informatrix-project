@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Personal Account{% endblock %}
+
+{% block content %}
+<div id="rec843263553" class="r t-rec t-rec_pt_120 t-rec_pt-res-480_90 t-rec_pb_45 t-rec_pb-res-480_15" style="padding-top:120px;padding-bottom:45px;background-color:#fff; " data-animationappear="off" data-record-type="1001" data-bg-color="#fff">
+    <div class="t1001">
+       <div class="t-container t-align_center">
+          <div class="t-col t-col_10 t-prefix_1">
+             <div class="t1001__title t-title t-title_md t-margin_auto" field="title">Your Personal Account</div>
+          </div>
+       </div>
+    </div>
+
+    <div class="dashboard-container" style="max-width: 800px; margin: 20px auto; background: #f9f9f9; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+    <h1 style="text-align: center; color: #333;">Welcome, {{ user.username }}!</h1>
+
+    <!-- Навигация по разделам -->
+    <div style="margin-top: 20px; text-align: center;">
+        <a href="?section=ct" style="padding: 10px 20px; margin: 5px; background: #007bff; color: #fff; border-radius: 5px; text-decoration: none;">Analysis of CT images</a>
+        <a href="?section=xray" style="padding: 10px 20px; margin: 5px; background: #007bff; color: #fff; border-radius: 5px; text-decoration: none;">Analysis of X-ray images</a>
+        <a href="?section=skin" style="padding: 10px 20px; margin: 5px; background: #007bff; color: #fff; border-radius: 5px; text-decoration: none;">Skin analysis</a>
+    </div>
+
+    <h2 style="text-align: center; margin-top: 30px;">{{ section_title }}</h2>
+
+    <!-- История анализов -->
+    <div style="margin-top: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: #fff;">
+        {% if analyses %}
+            <ul style="list-style-type: none; padding: 0; margin: 0;">
+                {% for analysis in analyses %}
+                    <li style="padding: 10px; border-bottom: 1px solid #eee;">
+                        <p style="margin: 0;"><strong>Analysis Name:</strong> {{ analysis.name }}</p>
+                        <p style="margin: 5px 0 0; color: #777;"><strong>Upload Date:</strong> {{ analysis.uploaded_at|date:"d M Y, H:i" }}</p>
+                        <p style="margin: 5px 0 0; color: #777;"><strong><a href="{{ analysis.analysis_file.url }}" target='_blank'>Analysis File </a></strong></p>
+                        <p style="margin: 5px 0 0; color: #777;"><strong>Analysis Result:</strong> {{ analysis.result }}</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="text-align: center; color: #999;">No analyses available for this section.</p>
+        {% endif %}
+    </div>
+</div>
+</div>
+{% endblock %}
